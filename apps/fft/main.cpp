@@ -15,6 +15,23 @@
 #include <fftw3.h>
 #endif
 
+#ifndef TEST_C2C
+#define TEST_C2C 1
+#endif
+#ifndef TEST_R2C
+#define TEST_R2C 1
+#endif
+#ifndef TEST_C2R
+#define TEST_C2R 1
+#endif
+
+#ifndef TEST_SAMPLES
+#define TEST_SAMPLES 100
+#endif
+#ifndef TEST_REPS
+#define TEST_REPS 1000
+#endif
+
 using namespace Halide;
 using namespace Halide::Tools;
 
@@ -135,8 +152,8 @@ int main(int argc, char **argv) {
 
     // Take the minimum time over many of iterations to minimize
     // noise.
-    const int samples = 100;
-    const int reps = 1000;
+    const int samples = TEST_SAMPLES;
+    const int reps = TEST_REPS;
 
     Var rep("rep");
 
@@ -146,6 +163,7 @@ int main(int argc, char **argv) {
     printf("%12s %5s%11s%5s %5s%11s%5s\n", "", "", "Halide", "", "", "FFTW", "");
     printf("%12s %10s %10s %10s %10s %10s\n", "DFT type", "Time (us)", "MFLOP/s", "Time (us)", "MFLOP/s", "Ratio");
 
+#if TEST_C2C
     ComplexFunc c2c_in;
     // Read all reps from the same place in memory. This effectively
     // benchmarks taking the FFT of cached inputs, which is a
@@ -179,7 +197,9 @@ int main(int argc, char **argv) {
            fftw_t,
            5 * W * H * (log2(W) + log2(H)) / fftw_t,
            fftw_t / halide_t);
+#endif // TEST_C2C
 
+#if TEST_R2C
     Func r2c_in;
     // All reps read from the same input. See notes on c2c_in.
     r2c_in(x, y, rep) = re_in(x, y);
@@ -205,7 +225,9 @@ int main(int argc, char **argv) {
            fftw_t,
            2.5 * W * H * (log2(W) + log2(H)) / fftw_t,
            fftw_t / halide_t);
+#endif // TEST_R2C
 
+#if TEST_C2R
     ComplexFunc c2r_in;
     // All reps read from the same input. See notes on c2c_in.
     c2r_in(x, y, rep) = {re_in(x, y), im_in(x, y)};
@@ -229,11 +251,18 @@ int main(int argc, char **argv) {
            fftw_t,
            2.5 * W * H * (log2(W) + log2(H)) / fftw_t,
            fftw_t / halide_t);
+#endif // TEST_C2R
 
 #ifdef WITH_FFTW
+#if TEST_C2C
     fftwf_destroy_plan(c2c_plan);
+#endif // TEST_C2C
+#if TEST_R2C
     fftwf_destroy_plan(r2c_plan);
+#endif // TEST_R2C
+#if TEST_C2R
     fftwf_destroy_plan(c2r_plan);
+#endif // TEST_C2R
 #endif
 
     return 0;
