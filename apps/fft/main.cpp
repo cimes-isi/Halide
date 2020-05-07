@@ -26,10 +26,10 @@
 #endif
 
 #ifndef TEST_SAMPLES
-#define TEST_SAMPLES 100
+#define TEST_SAMPLES 10
 #endif
 #ifndef TEST_REPS
-#define TEST_REPS 1000
+#define TEST_REPS 100
 #endif
 
 using namespace Halide;
