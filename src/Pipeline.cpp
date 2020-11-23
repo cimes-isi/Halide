@@ -1333,9 +1333,26 @@ void Pipeline::infer_input_bounds(const std::vector<int32_t> &sizes,
                                   const Target &target,
                                   const ParamMap &param_map) {
     user_assert(defined()) << "Can't infer input bounds on an undefined Pipeline.\n";
+    const Function &out = contents->outputs[0];
     vector<Buffer<>> bufs;
-    for (Type t : contents->outputs[0].output_types()) {
-        bufs.emplace_back(t, sizes);
+    vector<int> mins(out.dimensions(), 0);
+    vector<int> out_sizes = sizes;
+    for (int i = 0; i < out.dimensions(); i++) {
+        if (out.definition().schedule().dims()[i].distributed) {
+            int rank = 0, numprocs = 0;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+            int slice_size = (sizes[i] + numprocs - 1) / numprocs;
+            int new_min = slice_size * rank;
+            int new_max = new_min + slice_size - 1;
+            int new_extent = std::min(new_max, sizes[i] - 1) - new_min + 1;
+            mins[i] = slice_size * rank;
+            out_sizes[i] = new_extent;
+        }
+    }
+    for (Type t : out.output_types()) {
+        bufs.emplace_back(t, out_sizes);
+        bufs.back().set_min(mins);
     }
     Realization r(bufs);
     infer_input_bounds(r, target, param_map);

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <utility>
+#include <mpi.h>
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -3099,9 +3100,26 @@ void Func::infer_input_bounds(const std::vector<int32_t> &sizes,
                               const Target &target,
                               const ParamMap &param_map) {
     user_assert(defined()) << "Can't infer input bounds on an undefined Func.\n";
+    vector<Buffer<>> bufs;
+    vector<int> mins(dimensions(), 0);
+    vector<int> out_sizes = sizes;
+    for (int i = 0; i < dimensions(); i++) {
+        if (function().definition().schedule().dims()[i].distributed) {
+            int rank = 0, numprocs = 0;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+            int slice_size = (sizes[i] + numprocs - 1) / numprocs;
+            int new_min = slice_size * rank;
+            int new_max = new_min + slice_size - 1;
+            int new_extent = std::min(new_max, sizes[i] - 1) - new_min + 1;
+            mins[i] = slice_size * rank;
+            out_sizes[i] = new_extent;
+        }
+    }
     vector<Buffer<>> outputs(func.outputs());
     for (size_t i = 0; i < outputs.size(); i++) {
-        Buffer<> im(func.output_types()[i], nullptr, sizes);
+        Buffer<> im(func.output_types()[i], nullptr, out_sizes);
+        im.set_min(mins);
         outputs[i] = std::move(im);
     }
     Realization r(outputs);
