@@ -79,6 +79,7 @@ class Stage {
 
     void set_dim_type(const VarOrRVar &var, Internal::ForType t);
     void set_dim_device_api(const VarOrRVar &var, DeviceAPI device_api);
+    void set_distributed(const VarOrRVar &var);
     void split(const std::string &old, const std::string &outer, const std::string &inner,
                const Expr &factor, bool exact, TailStrategy tail);
     void remove(const std::string &var);
@@ -344,6 +345,7 @@ public:
     Stage &split(const VarOrRVar &old, const VarOrRVar &outer, const VarOrRVar &inner, const Expr &factor, TailStrategy tail = TailStrategy::Auto);
     Stage &fuse(const VarOrRVar &inner, const VarOrRVar &outer, const VarOrRVar &fused);
     Stage &serial(const VarOrRVar &var);
+    Stage &distribute(const VarOrRVar &var);
     Stage &parallel(const VarOrRVar &var);
     Stage &vectorize(const VarOrRVar &var);
     Stage &unroll(const VarOrRVar &var);
@@ -1473,6 +1475,10 @@ public:
 
     /** Mark a dimension to be traversed serially. This is the default. */
     Func &serial(const VarOrRVar &var);
+
+    /** Mark a dimension or dimensions to be traversed in a
+     * distributed fashion. */
+    Func &distribute(const VarOrRVar &var);
 
     /** Mark a dimension to be traversed in parallel */
     Func &parallel(const VarOrRVar &var);

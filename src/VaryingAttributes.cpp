@@ -133,7 +133,7 @@ protected:
         if (mutated_body.same_as(op->body)) {
             return op;
         } else {
-            return For::make(op->name, op->min, op->extent, op->for_type, op->device_api, mutated_body);
+            return For::make(op->name, op->min, op->extent, op->for_type, op->distributed, op->device_api, mutated_body);
         }
     }
 
@@ -1181,7 +1181,7 @@ public:
             // Add a let statement for the for-loop name variable
             Stmt loop_var = LetStmt::make(op->name, coord_expr, mutated_body);
 
-            stmt = For::make(name, 0, (int)dim.size(), ForType::Serial, DeviceAPI::None, loop_var);
+            stmt = For::make(name, 0, (int)dim.size(), ForType::Serial, false /* distributed */, DeviceAPI::None, loop_var);
 
         } else {
             IRFilter::visit(op);

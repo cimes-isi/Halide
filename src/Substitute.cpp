@@ -78,7 +78,7 @@ public:
             new_body.same_as(op->body)) {
             return op;
         } else {
-            return For::make(op->name, new_min, new_extent, op->for_type, op->device_api, new_body);
+            return For::make(op->name, new_min, new_extent, op->for_type, op->distributed, op->device_api, new_body);
         }
     }
 };

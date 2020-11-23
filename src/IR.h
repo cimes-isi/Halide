@@ -527,6 +527,8 @@ struct Call : public ExprNode<Call> {
         make_struct,
         memoize_expr,
         mod_round_to_zero,
+        mpi_num_processors,
+        mpi_rank,
         mulhi_shr,  // Compute high_half(arg[0] * arg[1]) >> arg[3]. Note that this is a shift in addition to taking the upper half of multiply result. arg[3] must be an unsigned integer immediate.
         popcount,
         prefetch,
@@ -699,10 +701,11 @@ struct For : public StmtNode<For> {
     std::string name;
     Expr min, extent;
     ForType for_type;
+    bool distributed;
     DeviceAPI device_api;
     Stmt body;
 
-    static Stmt make(const std::string &name, Expr min, Expr extent, ForType for_type, DeviceAPI device_api, Stmt body);
+    static Stmt make(const std::string &name, Expr min, Expr extent, ForType for_type, bool distributed, DeviceAPI device_api, Stmt body);
 
     bool is_unordered_parallel() const {
         return Halide::Internal::is_unordered_parallel(for_type);

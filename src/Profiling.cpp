@@ -283,7 +283,7 @@ private:
             body = op->body;
         }
 
-        Stmt stmt = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
+        Stmt stmt = For::make(op->name, op->min, op->extent, op->for_type, op->distributed, op->device_api, body);
 
         if (update_active_threads) {
             stmt = Block::make({decr_active_threads(), stmt, incr_active_threads()});

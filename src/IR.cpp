@@ -325,7 +325,7 @@ Stmt ProducerConsumer::make_consume(const std::string &name, Stmt body) {
     return ProducerConsumer::make(name, false, std::move(body));
 }
 
-Stmt For::make(const std::string &name, Expr min, Expr extent, ForType for_type, DeviceAPI device_api, Stmt body) {
+Stmt For::make(const std::string &name, Expr min, Expr extent, ForType for_type, bool distributed, DeviceAPI device_api, Stmt body) {
     internal_assert(min.defined()) << "For of undefined\n";
     internal_assert(extent.defined()) << "For of undefined\n";
     internal_assert(min.type() == Int(32)) << "For with non-integer min\n";
@@ -337,6 +337,7 @@ Stmt For::make(const std::string &name, Expr min, Expr extent, ForType for_type,
     node->min = std::move(min);
     node->extent = std::move(extent);
     node->for_type = for_type;
+    node->distributed = distributed;
     node->device_api = device_api;
     node->body = std::move(body);
     return node;
@@ -615,6 +616,8 @@ const char *const intrinsic_op_names[] = {
     "make_struct",
     "memoize_expr",
     "mod_round_to_zero",
+    "mpi_num_processors",
+    "mpi_rank",
     "mulhi_shr",
     "popcount",
     "prefetch",

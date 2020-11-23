@@ -214,7 +214,8 @@ Stmt IRMutator::visit(const For *op) {
         return op;
     }
     return For::make(op->name, std::move(min), std::move(extent),
-                     op->for_type, op->device_api, std::move(body));
+                     op->for_type, op->distributed,
+                     op->device_api, std::move(body));
 }
 
 Stmt IRMutator::visit(const Store *op) {

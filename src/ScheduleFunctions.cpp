@@ -87,7 +87,8 @@ Stmt build_loop_nest(
     int start_fuse,
     const Function &func,
     const Definition &def,
-    bool is_update) {
+    bool is_update,
+    bool is_output) {
     const auto &dims = func.args();
     const auto &func_s = func.schedule();
     const auto &stage_s = def.schedule();
@@ -290,7 +291,9 @@ Stmt build_loop_nest(
             const Dim &dim = stage_s.dims()[nest[i].dim_idx];
             Expr min = Variable::make(Int(32), nest[i].name + ".loop_min");
             Expr extent = Variable::make(Int(32), nest[i].name + ".loop_extent");
-            stmt = For::make(nest[i].name, min, extent, dim.for_type, dim.device_api, stmt);
+            // No need to mark the loop as distributed if the function is an output.
+            bool distributed = is_output && !is_update ? false : dim.distributed;
+            stmt = For::make(nest[i].name, min, extent, dim.for_type, distributed, dim.device_api, stmt);
         }
     }
 
@@ -346,7 +349,8 @@ Stmt build_provide_loop_nest(const map<string, Function> &env,
                              const Function &func,
                              const Definition &def,
                              int start_fuse,
-                             bool is_update) {
+                             bool is_update,
+                             bool is_output) {
 
     internal_assert(!is_update == def.is_init());
 
@@ -390,7 +394,7 @@ Stmt build_provide_loop_nest(const map<string, Function> &env,
     }
 
     // Default schedule/values if there is no specialization
-    Stmt stmt = build_loop_nest(body, prefix, start_fuse, func, def, is_update);
+    Stmt stmt = build_loop_nest(body, prefix, start_fuse, func, def, is_update, is_output);
     stmt = inject_placeholder_prefetch(stmt, env, prefix, def.schedule().prefetches());
 
     // Make any specialized copies
@@ -398,7 +402,7 @@ Stmt build_provide_loop_nest(const map<string, Function> &env,
     for (size_t i = specializations.size(); i > 0; i--) {
         const Specialization &s = specializations[i - 1];
         if (s.failure_message.empty()) {
-            Stmt then_case = build_provide_loop_nest(env, prefix, func, s.definition, start_fuse, is_update);
+            Stmt then_case = build_provide_loop_nest(env, prefix, func, s.definition, start_fuse, is_update, is_output);
             stmt = IfThenElse::make(s.condition, then_case, stmt);
         } else {
             internal_assert(equal(s.condition, const_true()));
@@ -424,7 +428,7 @@ Stmt build_provide_loop_nest(const map<string, Function> &env,
 // which it should be realized. It will compute at least those
 // bounds (depending on splits, it may compute more). This loop
 // won't do any allocation.
-Stmt build_extern_produce(const map<string, Function> &env, Function f, const Target &target) {
+Stmt build_extern_produce(const map<string, Function> &env, Function f, const Target &target, bool is_output) {
     // Call the external function
 
     // Build an argument list
@@ -720,7 +724,7 @@ Stmt build_extern_produce(const map<string, Function> &env, Function f, const Ta
 
     Definition f_def_no_pred = f.definition().get_copy();
     f_def_no_pred.predicate() = const_true();
-    return build_loop_nest(check, f.name() + ".s0.", -1, f, f_def_no_pred, false);
+    return build_loop_nest(check, f.name() + ".s0.", -1, f, f_def_no_pred, false /* is_update */, is_output);
 }
 
 // A schedule may include explicit bounds on some dimension. This
@@ -845,6 +849,7 @@ private:
                              for_loop->min,
                              for_loop->extent,
                              for_loop->for_type,
+                             for_loop->distributed,
                              for_loop->device_api,
                              body);
         }
@@ -944,7 +949,7 @@ private:
 
             Stmt stmt = For::make(new_var, Variable::make(Int(32), new_var + ".loop_min"),
                                   Variable::make(Int(32), new_var + ".loop_extent"),
-                                  for_type, device_api, body);
+                                  for_type, op->distributed, device_api, body);
 
             // Add let stmts defining the bound of the renamed for-loop.
             stmt = LetStmt::make(new_var + ".loop_min", min_val, stmt);
@@ -985,7 +990,7 @@ class ShiftLoopNest : public IRMutator {
             internal_assert(op);
             Expr adjusted = Variable::make(Int(32), op->name) + iter->second;
             Stmt body = substitute(op->name, adjusted, op->body);
-            stmt = For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
+            stmt = For::make(op->name, op->min, op->extent, op->for_type, op->distributed, op->device_api, body);
         }
         return stmt;
     }
@@ -1150,6 +1155,7 @@ protected:
                              for_loop->min,
                              for_loop->extent,
                              for_loop->for_type,
+                             for_loop->distributed,
                              for_loop->device_api,
                              body);
         }
@@ -1319,7 +1325,7 @@ private:
         }
     }
 
-    Stmt build_produce_definition(const Function &f, const string &prefix, const Definition &def, bool is_update,
+    Stmt build_produce_definition(const Function &f, const string &prefix, const Definition &def, bool is_update, bool is_output,
                                   map<string, Expr> &replacements, vector<pair<string, Expr>> &add_lets) {
         const vector<Dim> &dims = def.schedule().dims();  // From inner to outer
         const LoopLevel &fuse_level = def.schedule().fuse_level().level;
@@ -1362,7 +1368,7 @@ private:
             }
         }
 
-        Stmt produce = build_provide_loop_nest(env, prefix, f, def, (int)(start_fuse), is_update);
+        Stmt produce = build_provide_loop_nest(env, prefix, f, def, (int)(start_fuse), is_update, is_output);
 
         // Strip off the containing lets. The bounds of the parent fused loop
         // (i.e. the union bounds) might refer to them, so we need to move them
@@ -1612,9 +1618,10 @@ private:
 
         for (const auto &func_stage : stage_order) {
             const auto &f = func_stage.first;
+            bool is_output = is_output_list[func_name_to_index[f.name()]];
 
             if (f.has_extern_definition() && (func_stage.second == 0)) {
-                const Stmt &produceDef = Internal::build_extern_produce(env, f, target);
+                const Stmt &produceDef = Internal::build_extern_produce(env, f, target, is_output);
                 producer = inject_stmt(producer, produceDef, LoopLevel::inlined().lock());
                 continue;
             }
@@ -1622,7 +1629,7 @@ private:
             string def_prefix = f.name() + ".s" + std::to_string(func_stage.second) + ".";
             const auto &def = (func_stage.second == 0) ? f.definition() : f.updates()[func_stage.second - 1];
 
-            const Stmt &produceDef = build_produce_definition(f, def_prefix, def, func_stage.second > 0,
+            const Stmt &produceDef = build_produce_definition(f, def_prefix, def, func_stage.second > 0, is_output,
                                                               replacements, add_lets);
             producer = inject_stmt(producer, produceDef, def.schedule().fuse_level().level);
         }
@@ -2306,7 +2313,7 @@ Stmt schedule_functions(const vector<Function> &outputs,
                         const Target &target,
                         bool &any_memoized) {
     string root_var = LoopLevel::root().lock().to_string();
-    Stmt s = For::make(root_var, 0, 1, ForType::Serial, DeviceAPI::Host, Evaluate::make(0));
+    Stmt s = For::make(root_var, 0, 1, ForType::Serial, false /* distributed */, DeviceAPI::Host, Evaluate::make(0));
 
     any_memoized = false;
 

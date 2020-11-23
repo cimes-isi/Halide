@@ -121,7 +121,7 @@ WITH_AMDGPU ?= $(findstring amdgpu, $(LLVM_COMPONENTS))
 WITH_OPENCL ?= not-empty
 WITH_METAL ?= not-empty
 WITH_OPENGL ?= not-empty
-WITH_MPI ?= 1
+WITH_MPI ?= not-empty
 WITH_D3D12 ?= not-empty
 WITH_INTROSPECTION ?= not-empty
 WITH_EXCEPTIONS ?=
@@ -179,7 +179,9 @@ WEBASSEMBLY_CXX_FLAGS=$(if $(WITH_WEBASSEMBLY), -DWITH_WEBASSEMBLY, )
 WEBASSEMBLY_LLVM_CONFIG_LIB=$(if $(WITH_WEBASSEMBLY), webassembly, )
 
 CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
-MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI, )
+MPI_NODES?=2
+MPI_RUN=$(if $(WITH_MPI), mpirun -np $(MPI_NODES) )
 
 LLVM_HAS_NO_RTTI = $(findstring -fno-rtti, $(LLVM_CXX_FLAGS))
 WITH_RTTI ?= $(if $(LLVM_HAS_NO_RTTI),, not-empty)
@@ -218,6 +220,7 @@ CXX_FLAGS += $(EXCEPTIONS_CXX_FLAGS)
 CXX_FLAGS += $(AMDGPU_CXX_FLAGS)
 CXX_FLAGS += $(RISCV_CXX_FLAGS)
 CXX_FLAGS += $(WEBASSEMBLY_CXX_FLAGS)
+CXX_FLAGS += $(MPI_CXX_FLAGS)
 
 # This is required on some hosts like powerpc64le-linux-gnu because we may build
 # everything with -fno-exceptions.  Without -funwind-tables, libHalide.so fails
@@ -450,6 +453,8 @@ SOURCE_FILES = \
   DeviceArgument.cpp \
   DeviceInterface.cpp \
   Dimension.cpp \
+  DistributedBuffer.cpp \
+  DistributeLoops.cpp \
   EarlyFree.cpp \
   Elf.cpp \
   EliminateBoolVectors.cpp \
@@ -625,6 +630,8 @@ HEADER_FILES = \
   DeviceArgument.h \
   DeviceInterface.h \
   Dimension.h \
+  DistributedBuffer.h \
+  DistributeLoops.h \
   EarlyFree.h \
   Elf.h \
   EliminateBoolVectors.h \
@@ -780,6 +787,7 @@ RUNTIME_CPP_COMPONENTS = \
   mips_cpu_features \
   module_aot_ref_count \
   module_jit_ref_count \
+  mpi \
   msan \
   msan_stubs \
   opencl \
@@ -858,6 +866,7 @@ RUNTIME_EXPORTED_INCLUDES = $(INCLUDE_DIR)/HalideRuntime.h \
                             $(INCLUDE_DIR)/HalideRuntimeOpenGL.h \
                             $(INCLUDE_DIR)/HalideRuntimeOpenGLCompute.h \
                             $(INCLUDE_DIR)/HalideRuntimeMetal.h	\
+                            $(INCLUDE_DIR)/HalideRuntimeMPI.h \
                             $(INCLUDE_DIR)/HalideRuntimeQurt.h \
                             $(INCLUDE_DIR)/HalideBuffer.h \
                             $(INCLUDE_DIR)/HalidePyTorchHelpers.h \
@@ -940,10 +949,10 @@ endif
 $(INCLUDE_DIR)/Halide.h: $(SRC_DIR)/../LICENSE.txt $(HEADERS) $(BIN_DIR)/build_halide_h
 	@mkdir -p $(@D)
 	$(BIN_DIR)/build_halide_h $(SRC_DIR)/../LICENSE.txt $(HEADERS) > $(INCLUDE_DIR)/Halide.h
-	# Also generate a precompiled version in the same folder so that anything compiled with a compatible set of flags can use it
-	@mkdir -p $(INCLUDE_DIR)/Halide.h.gch
-	$(CXX) -std=c++11 $(TEST_CXX_FLAGS) -I$(ROOT_DIR) $(OPTIMIZE) -x c++-header $(INCLUDE_DIR)/Halide.h -o $(INCLUDE_DIR)/Halide.h.gch/Halide.default.gch
-	$(CXX) -std=c++11 $(TEST_CXX_FLAGS) -I$(ROOT_DIR) $(OPTIMIZE_FOR_BUILD_TIME) -x c++-header $(INCLUDE_DIR)/Halide.h -o $(INCLUDE_DIR)/Halide.h.gch/Halide.test.gch
+# 	# Also generate a precompiled version in the same folder so that anything compiled with a compatible set of flags can use it
+# 	@mkdir -p $(INCLUDE_DIR)/Halide.h.gch
+# 	$(CXX) -std=c++11 $(TEST_CXX_FLAGS) -I$(ROOT_DIR) $(OPTIMIZE) -x c++-header $(INCLUDE_DIR)/Halide.h -o $(INCLUDE_DIR)/Halide.h.gch/Halide.default.gch
+# 	$(CXX) -std=c++11 $(TEST_CXX_FLAGS) -I$(ROOT_DIR) $(OPTIMIZE_FOR_BUILD_TIME) -x c++-header $(INCLUDE_DIR)/Halide.h -o $(INCLUDE_DIR)/Halide.h.gch/Halide.test.gch
 
 $(INCLUDE_DIR)/HalideRuntime%: $(SRC_DIR)/runtime/HalideRuntime%
 	echo Copying $<
@@ -1016,6 +1025,22 @@ $(BUILD_DIR)/initmod.windows_%_32_debug.ll: $(SRC_DIR)/runtime/windows_%.cpp $(B
 $(BUILD_DIR)/initmod.%_32_debug.ll: $(SRC_DIR)/runtime/%.cpp $(BUILD_DIR)/clang_ok
 	@mkdir -p $(@D)
 	$(CLANG) $(CXX_WARNING_FLAGS) -g -DDEBUG_RUNTIME -O3 $(RUNTIME_CXX_FLAGS) -m32 -target $(RUNTIME_TRIPLE_32) -DCOMPILING_HALIDE_RUNTIME -DBITS_32 -emit-llvm -S $(SRC_DIR)/runtime/$*.cpp -o $@ -MMD -MP -MF $(BUILD_DIR)/initmod.$*_32_debug.d
+
+$(BUILD_DIR)/initmod.mpi_64.ll: $(SRC_DIR)/runtime/mpi.cpp $(BUILD_DIR)/clang_ok
+	@mkdir -p $(@D)
+	OMPI_CXX=$(CLANG) $(CXX) $(CXX_WARNING_FLAGS) $(RUNTIME_CXX_FLAGS) -fpic -m64 -target $(RUNTIME_TRIPLE_64) -DCOMPILING_HALIDE_RUNTIME -DBITS_64 -emit-llvm -S $(SRC_DIR)/runtime/mpi.cpp -o $@ -MMD -MP -MF $(BUILD_DIR)/initmod.mpi_64.d
+
+$(BUILD_DIR)/initmod.mpi_32.ll: $(SRC_DIR)/runtime/mpi.cpp $(BUILD_DIR)/clang_ok
+	@mkdir -p $(@D)
+	OMPI_CXX=$(CLANG) $(CXX) $(CXX_WARNING_FLAGS) $(RUNTIME_CXX_FLAGS) -fpic -m32 -target $(RUNTIME_TRIPLE_32) -DCOMPILING_HALIDE_RUNTIME -DBITS_32 -emit-llvm -S $(SRC_DIR)/runtime/mpi.cpp -o $@ -MMD -MP -MF $(BUILD_DIR)/initmod.mpi_32.d
+
+$(BUILD_DIR)/initmod.mpi_64_debug.ll: $(SRC_DIR)/runtime/mpi.cpp $(BUILD_DIR)/clang_ok
+	@mkdir -p $(@D)
+	OMPI_CXX=$(CLANG) $(CXX) $(CXX_WARNING_FLAGS) -g -DDEBUG_RUNTIME $(RUNTIME_CXX_FLAGS) -fpic -m64 -target $(RUNTIME_TRIPLE_64) -DCOMPILING_HALIDE_RUNTIME -DBITS_64 -emit-llvm -S $(SRC_DIR)/runtime/mpi.cpp -o $@ -MMD -MP -MF $(BUILD_DIR)/initmod.mpi_64_debug.d
+
+$(BUILD_DIR)/initmod.mpi_32_debug.ll: $(SRC_DIR)/runtime/mpi.cpp $(BUILD_DIR)/clang_ok
+	@mkdir -p $(@D)
+	OMPI_CXX=$(CLANG) $(CXX) $(CXX_WARNING_FLAGS) -g -DDEBUG_RUNTIME $(RUNTIME_CXX_FLAGS) -fpic -m32 -target $(RUNTIME_TRIPLE_32) -DCOMPILING_HALIDE_RUNTIME -DBITS_32 -emit-llvm -S $(SRC_DIR)/runtime/mpi.cpp -o $@ -MMD -MP -MF $(BUILD_DIR)/initmod.mpi_32_debug.d
 
 $(BUILD_DIR)/initmod.%_ll.ll: $(SRC_DIR)/runtime/%.ll
 	@mkdir -p $(@D)

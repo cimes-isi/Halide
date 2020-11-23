@@ -1385,6 +1385,9 @@ private:
         } else if (op->is_intrinsic(Call::memoize_expr)) {
             internal_assert(!op->args.empty());
             op->args[0].accept(this);
+        } else if (op->is_intrinsic(Call::mpi_num_processors) || op->is_intrinsic(Call::mpi_rank)) {
+            // We treat MPI function calls as constants: just use the original operations.
+            interval = Interval(Expr(op), Expr(op));
         } else if (op->call_type == Call::Halide) {
             bounds_of_func(op->name, op->value_index, op->type);
         } else {
@@ -3191,7 +3194,7 @@ void bounds_test() {
     Buffer<int32_t> in(10);
     in.set_name("input");
 
-    Stmt loop = For::make("x", 3, 10, ForType::Serial, DeviceAPI::Host,
+    Stmt loop = For::make("x", 3, 10, ForType::Serial, false /* distributed */, DeviceAPI::Host,
                           Provide::make("output",
                                         {Add::make(Call::make(in, input_site_1),
                                                    Call::make(in, input_site_2))},

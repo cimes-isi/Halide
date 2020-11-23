@@ -2829,6 +2829,12 @@ void CodeGen_LLVM::visit(const Call *op) {
         } else {
             internal_error << "mod_round_to_zero of non-integer type.\n";
         }
+    } else if (op->is_intrinsic(Call::mpi_num_processors)) {
+        internal_assert(op->args.size() == 0);
+        codegen(Call::make(op->type, "halide_mpi_num_processors", {}, Call::PureExtern));
+    } else if (op->is_intrinsic(Call::mpi_rank)) {
+        internal_assert(op->args.size() == 0);
+        codegen(Call::make(op->type, "halide_mpi_rank", {}, Call::PureExtern));
     } else if (op->is_intrinsic(Call::mulhi_shr)) {
         internal_assert(op->args.size() == 3);
 
@@ -3913,6 +3919,7 @@ void CodeGen_LLVM::do_parallel_tasks(const vector<ParallelTask> &tasks) {
                                Variable::make(Int(32), loop_min_name),
                                Variable::make(Int(32), loop_extent_name),
                                ForType::Serial,
+                               false /* distributed */, 
                                DeviceAPI::None,
                                t.body);
             ++iter;

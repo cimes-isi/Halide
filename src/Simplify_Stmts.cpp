@@ -196,7 +196,7 @@ Stmt Simplify::visit(const For *op) {
                op->body.same_as(new_body)) {
         return op;
     } else {
-        return For::make(op->name, new_min, new_extent, op->for_type, op->device_api, new_body);
+        return For::make(op->name, new_min, new_extent, op->for_type, op->distributed, op->device_api, new_body);
     }
 }
 

@@ -263,7 +263,7 @@ class SloppyUnpredicateLoadsAndStores : public IRMutator {
                                            ModulusRemainder());
             store_lanes = IfThenElse::make(pred_i != 0, store_lanes);
             store_lanes = For::make(lane_name, 0, lanes,
-                                    ForType::Serial, DeviceAPI::None, store_lanes);
+                                    ForType::Serial, false /* distributed */, DeviceAPI::None, store_lanes);
             stmts.emplace_back(std::move(store_lanes));
 
             Stmt result = Block::make(stmts);
@@ -333,7 +333,7 @@ private:
                 body = acquire_hvx_context(body, target);
                 body = substitute("uses_hvx", true, body);
                 Stmt new_for = For::make(op->name, op->min, op->extent, op->for_type,
-                                         op->device_api, body);
+                                         false /* distributed */, op->device_api, body);
                 Stmt prolog =
                     IfThenElse::make(uses_hvx_var, call_halide_qurt_hvx_unlock());
                 Stmt epilog =
@@ -378,7 +378,7 @@ private:
                 //   halide_qurt_unlock
                 // }
                 s = For::make(op->name, op->min, op->extent, op->for_type,
-                              op->device_api, body);
+                              false /* distributed */, op->device_api, body);
             }
 
             uses_hvx = old_uses_hvx;

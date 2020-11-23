@@ -21,6 +21,7 @@
 #include "DebugArguments.h"
 #include "DebugToFile.h"
 #include "Deinterleave.h"
+#include "DistributeLoops.h"
 #include "EarlyFree.h"
 #include "FindCalls.h"
 #include "FlattenNestedRamps.h"
@@ -213,6 +214,16 @@ Module lower(const vector<Function> &output_funcs,
     s = add_image_checks(s, outputs, t, order, env, func_bounds, will_inject_host_copies);
     debug(2) << "Lowering after injecting image checks:\n"
              << s << '\n';
+
+    // This pass distributes loops. It should take place after image
+    // checks so that the checks are in terms of global image
+    // bounds. It should also take place before bounds inference so
+    // that inferred bounds are in terms of processor rank.
+    if (t.has_feature(Target::MPI)) {
+        debug(1) << "Converting distributed for loops to MPI calls...\n";
+        s = distribute_loops(s);
+        debug(2) << "Lowering after converting distributed for loops:\n" << s << "\n\n";
+    }
 
     debug(1) << "Removing code that depends on undef values...\n";
     s = remove_undef(s);

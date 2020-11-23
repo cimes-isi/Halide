@@ -85,6 +85,7 @@ struct Target {
         OpenGL = halide_target_feature_opengl,
         OpenGLCompute = halide_target_feature_openglcompute,
         EGL = halide_target_feature_egl,
+        MPI = halide_target_mpi,
         UserContext = halide_target_feature_user_context,
         Matlab = halide_target_feature_matlab,
         Profile = halide_target_feature_profile,

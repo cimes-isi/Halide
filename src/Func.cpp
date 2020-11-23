@@ -359,6 +359,28 @@ void Stage::set_dim_type(const VarOrRVar &var, ForType t) {
     }
 }
 
+void Stage::set_distributed(const VarOrRVar &var) {
+    bool found = false;
+    vector<Dim> &dims = definition.schedule().dims();
+    user_assert(!var.is_rvar)
+        << "Can't set a reduction variable to distributed.";
+    for (size_t i = 0; i < dims.size(); i++) {
+        if (var_name_match(dims[i].var, var.name())) {
+            found = true;
+            dims[i].distributed = true;
+        }
+    }
+
+    if (!found) {
+        user_error << "In schedule for " << name()
+                   << ", could not find dimension "
+                   << var.name()
+                   << " to mark as distributed"
+                   << " in vars for function\n"
+                   << dump_argument_list();
+    }
+}
+
 void Stage::set_dim_device_api(const VarOrRVar &var, DeviceAPI device_api) {
     bool found = false;
     vector<Dim> &dims = definition.schedule().dims();
@@ -1440,6 +1462,11 @@ Stage &Stage::serial(const VarOrRVar &var) {
     return *this;
 }
 
+Stage &Stage::distribute(const VarOrRVar &var) {
+    set_distributed(var);
+    return *this;
+}
+
 Stage &Stage::parallel(const VarOrRVar &var) {
     set_dim_type(var, ForType::Parallel);
     return *this;
@@ -2097,6 +2124,12 @@ void Func::specialize_fail(const std::string &message) {
 Func &Func::serial(const VarOrRVar &var) {
     invalidate_cache();
     Stage(func, func.definition(), 0).serial(var);
+    return *this;
+}
+
+Func &Func::distribute(const VarOrRVar &var) {
+    invalidate_cache();
+    Stage(func, func.definition(), 0).distribute(var);
     return *this;
 }
 

@@ -33,7 +33,7 @@ protected:
         if (is_no_op(body)) {
             return body;
         } else {
-            return For::make(op->name, op->min, op->extent, op->for_type, op->device_api, body);
+            return For::make(op->name, op->min, op->extent, op->for_type, op->distributed, op->device_api, body);
         }
     }
 

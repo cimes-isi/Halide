@@ -322,7 +322,7 @@ private:
             body.same_as(op->body)) {
             return op;
         } else {
-            return For::make(op->name, min, extent, op->for_type, op->device_api, body);
+            return For::make(op->name, min, extent, op->for_type, op->distributed, op->device_api, body);
         }
     }
 

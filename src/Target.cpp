@@ -170,6 +170,10 @@ Target calculate_host_target() {
 #endif
 #endif
 
+#if WITH_MPI
+    initial_features.push_back(Target::MPI);
+#endif
+
     return {os, arch, bits, initial_features};
 }
 
@@ -317,6 +321,7 @@ const std::map<std::string, Target::Feature> feature_name_map = {
     {"opengl", Target::OpenGL},
     {"openglcompute", Target::OpenGLCompute},
     {"egl", Target::EGL},
+    {"mpi", Target::MPI},
     {"user_context", Target::UserContext},
     {"matlab", Target::Matlab},
     {"profile", Target::Profile},

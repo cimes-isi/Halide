@@ -391,6 +391,9 @@ struct Dim {
      * loop (see the DimType enum above). */
     DimType dim_type;
 
+    /** Whether the loop is distributed across machines. */
+    bool distributed;
+
     /** Can this loop be evaluated in any order (including in
      * parallel)? Equivalently, are there no data hazards between
      * evaluations of the Func at distinct values of this var? */
