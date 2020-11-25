@@ -963,8 +963,14 @@ public:
             }
             for (int d = 0; d < output.dimensions(); d++) {
                 Parameter buf = output.output_buffers()[0];
-                Expr min = Variable::make(Int(32), buffer_name + ".min." + std::to_string(d), buf);
-                Expr extent = Variable::make(Int(32), buffer_name + ".extent." + std::to_string(d), buf);
+                Expr min, extent;
+                if (output.definition().schedule().dims()[d].distributed) {
+                    min = Variable::make(Int(32), buffer_name + ".global_min." + std::to_string(d), buf);
+                    extent = Variable::make(Int(32), buffer_name + ".global_extent." + std::to_string(d), buf);
+                } else {
+                    min = Variable::make(Int(32), buffer_name + ".min." + std::to_string(d), buf);
+                    extent = Variable::make(Int(32), buffer_name + ".extent." + std::to_string(d), buf);
+                }
 
                 // Respect any output min and extent constraints
                 Expr min_constraint = buf.min_constraint(d);

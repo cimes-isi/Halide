@@ -180,7 +180,7 @@ WEBASSEMBLY_LLVM_CONFIG_LIB=$(if $(WITH_WEBASSEMBLY), webassembly, )
 
 CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
 MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI, )
-MPI_NODES?=2
+MPI_NODES?=4
 MPI_RUN=$(if $(WITH_MPI), mpirun -np $(MPI_NODES) )
 
 LLVM_HAS_NO_RTTI = $(findstring -fno-rtti, $(LLVM_CXX_FLAGS))

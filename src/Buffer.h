@@ -447,6 +447,7 @@ public:
     HALIDE_BUFFER_FORWARD(embed)
     HALIDE_BUFFER_FORWARD_CONST(embedded)
     HALIDE_BUFFER_FORWARD(set_min)
+    HALIDE_BUFFER_FORWARD(set_distributed)
     HALIDE_BUFFER_FORWARD(translate)
     HALIDE_BUFFER_FORWARD_INITIALIZER_LIST(translate, std::vector<int>)
     HALIDE_BUFFER_FORWARD(transpose)
@@ -468,6 +469,7 @@ public:
     HALIDE_BUFFER_FORWARD(device_deallocate)
     HALIDE_BUFFER_FORWARD(device_free)
     HALIDE_BUFFER_FORWARD_CONST(all_equal)
+    HALIDE_BUFFER_FORWARD_CONST(is_distributed)
 
 #undef HALIDE_BUFFER_FORWARD
 #undef HALIDE_BUFFER_FORWARD_CONST

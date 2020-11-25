@@ -119,6 +119,14 @@ Stmt unpack_buffers(Stmt s) {
             string stride_var = name + ".stride." + std::to_string(i);
             Expr stride_val = Call::make(Int(32), Call::buffer_get_stride, args, Call::Extern);
             lets.emplace_back(stride_var, stride_val);
+
+            string global_min_var = name + ".global_min." + std::to_string(i);
+            Expr global_min_val = Call::make(Int(32), Call::buffer_get_global_min, args, Call::Extern);
+            lets.emplace_back(global_min_var, global_min_val);
+
+            string global_extent_var = name + ".global_extent." + std::to_string(i);
+            Expr global_extent_val = Call::make(Int(32), Call::buffer_get_global_extent, args, Call::Extern);
+            lets.emplace_back(global_extent_var, global_extent_val);
         }
     }
 

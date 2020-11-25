@@ -291,9 +291,7 @@ Stmt build_loop_nest(
             const Dim &dim = stage_s.dims()[nest[i].dim_idx];
             Expr min = Variable::make(Int(32), nest[i].name + ".loop_min");
             Expr extent = Variable::make(Int(32), nest[i].name + ".loop_extent");
-            // No need to mark the loop as distributed if the function is an output.
-            bool distributed = is_output && !is_update ? false : dim.distributed;
-            stmt = For::make(nest[i].name, min, extent, dim.for_type, distributed, dim.device_api, stmt);
+            stmt = For::make(nest[i].name, min, extent, dim.for_type, dim.distributed, dim.device_api, stmt);
         }
     }
 

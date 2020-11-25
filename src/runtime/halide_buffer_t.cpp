@@ -4,6 +4,7 @@
 #else
 #define HALIDE_BUFFER_HELPER_ATTRS inline
 #endif
+#include "printer.h"
 
 // Structs are annoying to deal with from within Halide Stmts. These
 // utility functions are for dealing with halide_buffer_t in that
@@ -52,6 +53,42 @@ int _halide_buffer_get_extent(const halide_buffer_t *buf, int d) {
 HALIDE_BUFFER_HELPER_ATTRS
 int _halide_buffer_get_stride(const halide_buffer_t *buf, int d) {
     return buf->dim[d].stride;
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_get_global_min(const halide_buffer_t *buf, int d) {
+    if (buf->distributed_global_dim != nullptr) {
+        return buf->distributed_global_dim[d].min;
+    } else {
+        return buf->dim[d].min;
+    }
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_get_global_max(const halide_buffer_t *buf, int d) {
+    if (buf->distributed_global_dim != nullptr) {
+        return buf->distributed_global_dim[d].min + buf->distributed_global_dim[d].extent - 1;
+    } else {
+        return buf->dim[d].min + buf->dim[d].extent - 1;
+    }
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_get_global_extent(const halide_buffer_t *buf, int d) {
+    if (buf->distributed_global_dim != nullptr) {
+        return buf->distributed_global_dim[d].extent;
+    } else {
+        return buf->dim[d].extent;
+    }
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_get_global_stride(const halide_buffer_t *buf, int d) {
+    if (buf->distributed_global_dim != nullptr) {
+        return buf->distributed_global_dim[d].stride;
+    } else {
+        return buf->dim[d].stride;
+    }
 }
 
 HALIDE_BUFFER_HELPER_ATTRS

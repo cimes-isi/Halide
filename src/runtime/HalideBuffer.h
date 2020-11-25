@@ -272,19 +272,29 @@ private:
             delete[] buf.dim;
             buf.dim = nullptr;
         }
+        delete[] buf.distributed_global_dim;
+        buf.distributed_global_dim = nullptr;
     }
 
-    void make_shape_storage(const int dimensions) {
+    void make_shape_storage(const int dimensions, bool distributed = false) {
         // This should usually be inlined, so if dimensions is statically known,
         // we can skip the call to new
         buf.dimensions = dimensions;
         buf.dim = (dimensions <= D) ? shape : new halide_dimension_t[dimensions];
+        if (distributed) {
+            buf.distributed_global_dim = new halide_dimension_t[dimensions];
+        } else {
+            buf.distributed_global_dim = nullptr;
+        }
     }
 
     void copy_shape_from(const halide_buffer_t &other) {
         // All callers of this ensure that buf.dimensions == other.dimensions.
-        make_shape_storage(other.dimensions);
+        make_shape_storage(other.dimensions, other.distributed_global_dim != nullptr);
         std::copy(other.dim, other.dim + other.dimensions, buf.dim);
+        if (other.distributed_global_dim != nullptr) {
+            std::copy(other.distributed_global_dim, other.distributed_global_dim + other.dimensions, buf.distributed_global_dim);
+        }
     }
 
     template<typename T2, int D2>
@@ -293,7 +303,9 @@ private:
             copy_shape_from(other.buf);
         } else {
             buf.dim = other.buf.dim;
+            buf.distributed_global_dim = other.buf.distributed_global_dim;
             other.buf.dim = nullptr;
+            other.buf.distributed_global_dim = nullptr;
         }
     }
 
@@ -500,6 +512,15 @@ public:
         return Dimension(buf.dim[i]);
     }
 
+    /** Access the "global" shape of the distributed buffer */
+    HALIDE_ALWAYS_INLINE Dimension global_dim(int i) const {
+        if (buf.distributed_global_dim == nullptr) {
+            return Dimension();
+        }
+        assert(i >= 0 && i < this->dimensions());
+        return Dimension(buf.distributed_global_dim[i]);
+    }
+
     /** Access to the mins, strides, extents. Will be deprecated. Do not use. */
     // @{
     int min(int i) const {
@@ -531,6 +552,11 @@ public:
     /** Get the type of the elements. */
     halide_type_t type() const {
         return buf.type;
+    }
+
+    /** Is this buffer part of a distributed buffer allocation? */
+    bool is_distributed() const {
+        return buf.distributed_global_dim != nullptr;
     }
 
 private:
@@ -1387,6 +1413,23 @@ public:
         set_min(std::vector<int>{args...});
     }
     // @}
+
+    /** Mark the buffer as distributed and set the global dimensions. */
+    void set_distributed(const std::vector<std::pair<int, int>> &global_mins_extents) {
+        if (buf.distributed_global_dim == nullptr) {
+            buf.distributed_global_dim = new halide_dimension_t[buf.dimensions];
+        }
+        for (int i = 0; i < buf.dimensions; i++) {
+            buf.distributed_global_dim[i].min = global_mins_extents[i].first;
+            buf.distributed_global_dim[i].extent = global_mins_extents[i].second;
+            if (i == 0) {
+                buf.distributed_global_dim[i].stride = 1;
+            } else {
+                buf.distributed_global_dim[i].stride =
+                    buf.distributed_global_dim[i - 1].stride * buf.distributed_global_dim[i - 1].extent;
+            }
+        }
+    }
 
     /** Test if a given coordinate is within the bounds of an image. */
     // @{

@@ -24,6 +24,7 @@ namespace Halide {
 
 using std::string;
 using std::vector;
+using std::pair;
 
 namespace {
 
@@ -717,25 +718,40 @@ Realization Pipeline::realize(vector<int32_t> sizes, const Target &target,
     sliced_sizes.reserve(contents->outputs.size());
     for (auto &out : contents->outputs) {
         user_assert(out.has_pure_definition() || out.has_extern_definition()) << "Can't realize Pipeline with undefined output Func: " << out.name() << ".\n";
-        vector<int> mins(out.dimensions(), 0);
+        vector<int> mins(sizes.size(), 0);
         vector<int> out_sizes = sizes;
-        for (int i = 0; i < (int)out.dimensions(); i++) {
+        bool is_distributed = false;
+        for (int i = 0; i < (int)sizes.size(); i++) {
             if (out.definition().schedule().dims()[i].distributed) {
+                is_distributed = true;
                 int rank = 0, numprocs = 0;
                 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
                 MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
                 int slice_size = (sizes[i] + numprocs - 1) / numprocs;
                 int new_min = slice_size * rank;
-                int new_max = new_min + slice_size - 1;
-                int new_extent = std::min(new_max, sizes[i] - 1) - new_min + 1;
+                int new_max = std::min(new_min + slice_size - 1, sizes[i] - 1);
+                int new_extent = new_max - new_min + 1;
                 mins[i] = slice_size * rank;
                 out_sizes[i] = new_extent;
             }
         }
+
         for (Type t : out.output_types()) {
             bufs.emplace_back(t, nullptr, out_sizes);
             bufs.back().set_min(mins);
         }
+
+        if (is_distributed) {
+            vector<pair<int, int>> global_mins_extents(sizes.size());
+            for (int i = 0; i < out.dimensions(); i++) {
+                global_mins_extents[i].first = 0;
+                global_mins_extents[i].second = sizes[i];
+            }
+            for (Buffer<> &b : bufs) {
+                b.set_distributed(global_mins_extents);
+            }
+        }
+
         buf_mins.push_back(mins);
         sliced_sizes.push_back(out_sizes);
     }
@@ -1337,15 +1353,17 @@ void Pipeline::infer_input_bounds(const std::vector<int32_t> &sizes,
     vector<Buffer<>> bufs;
     vector<int> mins(out.dimensions(), 0);
     vector<int> out_sizes = sizes;
+    bool is_distributed = false;
     for (int i = 0; i < out.dimensions(); i++) {
         if (out.definition().schedule().dims()[i].distributed) {
+            is_distributed = true;
             int rank = 0, numprocs = 0;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
             int slice_size = (sizes[i] + numprocs - 1) / numprocs;
             int new_min = slice_size * rank;
-            int new_max = new_min + slice_size - 1;
-            int new_extent = std::min(new_max, sizes[i] - 1) - new_min + 1;
+            int new_max = std::min(new_min + slice_size - 1, sizes[i] - 1);
+            int new_extent = new_max - new_min + 1;
             mins[i] = slice_size * rank;
             out_sizes[i] = new_extent;
         }
@@ -1353,6 +1371,16 @@ void Pipeline::infer_input_bounds(const std::vector<int32_t> &sizes,
     for (Type t : out.output_types()) {
         bufs.emplace_back(t, out_sizes);
         bufs.back().set_min(mins);
+    }
+    if (is_distributed) {
+        vector<pair<int, int>> global_mins_extents(sizes.size());
+        for (int i = 0; i < out.dimensions(); i++) {
+            global_mins_extents[i].first = 0;
+            global_mins_extents[i].second = sizes[i];
+        }
+        for (Buffer<> &b : bufs) {
+            b.set_distributed(global_mins_extents);
+        }
     }
     Realization r(bufs);
     infer_input_bounds(r, target, param_map);

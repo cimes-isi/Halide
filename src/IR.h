@@ -562,6 +562,8 @@ struct Call : public ExprNode<Call> {
         buffer_get_dimensions,
         buffer_get_min,
         buffer_get_extent,
+        buffer_get_global_min,
+        buffer_get_global_extent,
         buffer_get_stride,
         buffer_get_max,
         buffer_get_host,

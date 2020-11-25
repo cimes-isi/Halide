@@ -1272,6 +1272,8 @@ Stmt StmtNode<Atomic>::mutate_stmt(IRMutator *v) const {
 Call::ConstString Call::buffer_get_dimensions = "_halide_buffer_get_dimensions";
 Call::ConstString Call::buffer_get_min = "_halide_buffer_get_min";
 Call::ConstString Call::buffer_get_extent = "_halide_buffer_get_extent";
+Call::ConstString Call::buffer_get_global_min = "_halide_buffer_get_global_min";
+Call::ConstString Call::buffer_get_global_extent = "_halide_buffer_get_global_extent";
 Call::ConstString Call::buffer_get_stride = "_halide_buffer_get_stride";
 Call::ConstString Call::buffer_get_max = "_halide_buffer_get_max";
 Call::ConstString Call::buffer_get_host = "_halide_buffer_get_host";

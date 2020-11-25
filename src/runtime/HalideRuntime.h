@@ -1436,6 +1436,10 @@ typedef struct halide_buffer_t {
      * must manage the memory for it yourself. */
     halide_dimension_t *dim;
 
+    /** For distributed computing. The array points to nullptr if 
+     *  this buffer is not allocated in a distributed setting. */
+    halide_dimension_t *distributed_global_dim;
+
     /** Pads the buffer up to a multiple of 8 bytes */
     void *padding;
 
