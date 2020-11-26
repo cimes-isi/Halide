@@ -742,13 +742,8 @@ Realization Pipeline::realize(vector<int32_t> sizes, const Target &target,
         }
 
         if (is_distributed) {
-            vector<pair<int, int>> global_mins_extents(sizes.size());
-            for (int i = 0; i < out.dimensions(); i++) {
-                global_mins_extents[i].first = 0;
-                global_mins_extents[i].second = sizes[i];
-            }
             for (Buffer<> &b : bufs) {
-                b.set_distributed(global_mins_extents);
+                b.set_distributed(sizes);
             }
         }
 
@@ -1249,10 +1244,18 @@ void Pipeline::infer_input_bounds(RealizationArg outputs, const Target &target, 
             query_indices.push_back(i);
             InferredArgument ia = contents->inferred_args[i];
             internal_assert(ia.param.defined() && ia.param.is_buffer());
+            Buffer<> *buf_out_param = nullptr;
+            param_map.map(ia.param, buf_out_param);
             // Make some empty Buffers of the right dimensionality
             vector<int> initial_shape(ia.param.dimensions(), 0);
-            tracked_buffers[i].query = Runtime::Buffer<>(ia.param.type(), nullptr, initial_shape);
             tracked_buffers[i].orig = Runtime::Buffer<>(ia.param.type(), nullptr, initial_shape);
+            if (buf_out_param == nullptr) {
+                tracked_buffers[i].query = Runtime::Buffer<>(ia.param.type(), nullptr, initial_shape);
+            } else {
+                // Use the associated buffer in the param_map to do the boundary query.
+                // Important for distributed buffers since this sets up the global buffer size.
+                tracked_buffers[i].query = *buf_out_param->get();
+            }
             args.store[i] = tracked_buffers[i].query.raw_buffer();
         }
     }
@@ -1313,12 +1316,12 @@ void Pipeline::infer_input_bounds(RealizationArg outputs, const Target &target, 
         }
         internal_assert(!p.buffer().defined());
 
-        // Allocate enough memory with the right type and dimensionality.
-        tracked_buffers[i].query.allocate();
-
         if (buf_out_param != nullptr) {
             *buf_out_param = Buffer<>(*tracked_buffers[i].query.raw_buffer());
+            buf_out_param->allocate();
         } else {
+            // Allocate enough memory with the right type and dimensionality.
+            tracked_buffers[i].query.allocate();
             // Bind this parameter to this buffer, giving away the
             // buffer. The user retrieves it via ImageParam::get.
             p.set_buffer(Buffer<>(std::move(tracked_buffers[i].query)));
@@ -1373,13 +1376,8 @@ void Pipeline::infer_input_bounds(const std::vector<int32_t> &sizes,
         bufs.back().set_min(mins);
     }
     if (is_distributed) {
-        vector<pair<int, int>> global_mins_extents(sizes.size());
-        for (int i = 0; i < out.dimensions(); i++) {
-            global_mins_extents[i].first = 0;
-            global_mins_extents[i].second = sizes[i];
-        }
         for (Buffer<> &b : bufs) {
-            b.set_distributed(global_mins_extents);
+            b.set_distributed(sizes);
         }
     }
     Realization r(bufs);

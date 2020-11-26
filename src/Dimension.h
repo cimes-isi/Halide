@@ -31,6 +31,8 @@ public:
      * given dimension */
     Expr stride() const;
 
+    Expr global_extent() const;
+
     /** Set the min in a given dimension to equal the given
      * expression. Setting the mins to zero may simplify some
      * addressing math. */

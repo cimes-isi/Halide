@@ -98,6 +98,8 @@ public:
      * convention is the channel-count of the image */
     Expr channels() const;
 
+    Expr global_width() const;
+
     /** Get at the internal parameter object representing this ImageParam. */
     Internal::Parameter parameter() const;
 

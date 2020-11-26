@@ -162,6 +162,49 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        int num_elements = 23;
+        ImageParam in(Int(32), 1);
+        Func f;
+        f(x) = in(max(x - 1, 0)) + in(x) + in(min(x + 1, in.global_width() - 1));
+        f.distribute(x);
+
+        Buffer<int> in_buf(nullptr, 0);
+        in_buf.set_distributed(std::vector<int>{num_elements});
+        f.infer_input_bounds({num_elements}, get_jit_target_from_environment(), {{in, &in_buf}});
+        // in_buf.allocate();
+        in.set(in_buf);
+
+        int num_elements_per_proc = (num_elements + numprocs - 1) / numprocs;
+        int buf_min = std::max(num_elements_per_proc * rank - 1, 0);
+        int buf_max = std::min((num_elements_per_proc * rank - 1) + num_elements_per_proc + 1, num_elements - 1);
+        if (in_buf.dim(0).min() != buf_min) {
+            printf("rank %d: in_buf.dim(0).min() = %d instead of %d\n", rank, in_buf.dim(0).min(), buf_min);
+            MPI_Finalize();
+            return -1;
+        }
+        if (in_buf.dim(0).max() != buf_max) {
+            printf("rank %d: in_buf.dim(0).max() = %d instead of %d\n", rank, in_buf.dim(0).max(), buf_max);
+            MPI_Finalize();
+            return -1;
+        }
+        for (int x = in_buf.dim(0).min(); x <= in_buf.dim(0).max(); x++) {
+            in_buf(x) = 2 * x;
+        }
+
+        Buffer<int> out = f.realize(num_elements);
+        for (int x = out.dim(0).min(); x <= out.dim(0).max(); x++) {
+            int left_id = std::max(x - 1, 0);
+            int right_id = std::min(x + 1, num_elements - 1);
+            int correct = 2 * left_id + 2 * x + 2 * right_id;
+            if (out(x) != correct) {
+                printf("out(%d) = %d instead of %d\n", x, out(x), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
+    }
+
     MPI_Finalize();
     return 0;
 }

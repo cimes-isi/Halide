@@ -79,6 +79,11 @@ Expr OutputImageParam::channels() const {
     return dim(2).extent();
 }
 
+Expr OutputImageParam::global_width() const {
+    user_assert(dimensions() > 0) << "Can't ask for the width of a zero-dimensional image\n";
+    return dim(0).global_extent();
+}
+
 Internal::Parameter OutputImageParam::parameter() const {
     return param;
 }

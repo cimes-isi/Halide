@@ -34,6 +34,12 @@ Expr Dimension::max() const {
     return min() + extent() - 1;
 }
 
+Expr Dimension::global_extent() const {
+    std::ostringstream s;
+    s << param.name() << ".global_extent." << d;
+    return Variable::make(Int(32), s.str(), param);
+}
+
 // DEPRECATED
 Expr Dimension::min_estimate() const {
     return param.min_constraint_estimate(d);

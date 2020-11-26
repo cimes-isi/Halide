@@ -3125,13 +3125,8 @@ void Func::infer_input_bounds(const std::vector<int32_t> &sizes,
         outputs[i] = std::move(im);
     }
     if (is_distributed) {
-        vector<pair<int, int>> global_mins_extents(sizes.size());
-        for (int i = 0; i < dimensions(); i++) {
-            global_mins_extents[i].first = 0;
-            global_mins_extents[i].second = sizes[i];
-        }
         for (Buffer<> &b : outputs) {
-            b.set_distributed(global_mins_extents);
+            b.set_distributed(sizes);
         }
     }
     Realization r(outputs);

@@ -515,7 +515,7 @@ public:
     /** Access the "global" shape of the distributed buffer */
     HALIDE_ALWAYS_INLINE Dimension global_dim(int i) const {
         if (buf.distributed_global_dim == nullptr) {
-            return Dimension();
+            return Dimension(halide_dimension_t());
         }
         assert(i >= 0 && i < this->dimensions());
         return Dimension(buf.distributed_global_dim[i]);
@@ -1138,6 +1138,15 @@ public:
     int channels() const {
         return (dimensions() > 2) ? dim(2).extent() : 1;
     }
+    int global_width() const {
+        return (dimensions() > 0) ? global_dim(0).extent() : 1;
+    }
+    int global_height() const {
+        return (dimensions() > 1) ? global_dim(1).extent() : 1;
+    }
+    int global_channels() const {
+        return (dimensions() > 2) ? global_dim(2).extent() : 1;
+    }
     // @}
 
     /** Conventional names for the min and max value of each dimension */
@@ -1415,13 +1424,14 @@ public:
     // @}
 
     /** Mark the buffer as distributed and set the global dimensions. */
-    void set_distributed(const std::vector<std::pair<int, int>> &global_mins_extents) {
+    void set_distributed(const std::vector<int> &global_mins,
+                         const std::vector<int> &global_extents) {
         if (buf.distributed_global_dim == nullptr) {
             buf.distributed_global_dim = new halide_dimension_t[buf.dimensions];
         }
         for (int i = 0; i < buf.dimensions; i++) {
-            buf.distributed_global_dim[i].min = global_mins_extents[i].first;
-            buf.distributed_global_dim[i].extent = global_mins_extents[i].second;
+            buf.distributed_global_dim[i].min = global_mins[i];
+            buf.distributed_global_dim[i].extent = global_extents[i];
             if (i == 0) {
                 buf.distributed_global_dim[i].stride = 1;
             } else {
@@ -1429,6 +1439,10 @@ public:
                     buf.distributed_global_dim[i - 1].stride * buf.distributed_global_dim[i - 1].extent;
             }
         }
+    }
+
+    void set_distributed(const std::vector<int> &global_sizes) {
+        set_distributed(std::vector<int>(global_sizes.size(), 0), global_sizes);
     }
 
     /** Test if a given coordinate is within the bounds of an image. */
