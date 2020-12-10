@@ -257,7 +257,7 @@ class ReducePrefetchDimension : public IRMutator {
 
             stmt = Evaluate::make(Call::make(prefetch->type, Call::prefetch, args, Call::Intrinsic));
             for (size_t i = 0; i < index_names.size(); ++i) {
-                stmt = For::make(index_names[i], 0, call->args[(i + max_dim) * 2 + 2],
+                stmt = For::make(index_names[i], 0, prefetch->args[(i + max_dim) * 2 + 2],
                                  ForType::Serial, false /* distributed */, DeviceAPI::None, stmt);
             }
             debug(5) << "\nReduce prefetch to " << max_dim << " dim:\n"
