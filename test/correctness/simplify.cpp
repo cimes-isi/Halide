@@ -1536,7 +1536,7 @@ void check_boolean() {
 
     // A for loop is also an if statement that the extent is greater than zero
     Stmt body = AssertStmt::make(y == z, y);
-    Stmt loop = For::make("t", 0, x, ForType::Serial, DeviceAPI::None, body);
+    Stmt loop = For::make("t", 0, x, ForType::Serial, false /* distributed */, DeviceAPI::None, body);
     check(IfThenElse::make(0 < x, loop), loop);
 
     // A for loop where the extent is exactly one is just the body
