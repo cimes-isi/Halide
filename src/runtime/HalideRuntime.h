@@ -1440,8 +1440,8 @@ typedef struct halide_buffer_t {
      *  this buffer is not allocated in a distributed setting. */
     halide_dimension_t *distributed_global_dim;
 
-    /** Pads the buffer up to a multiple of 8 bytes */
-    void *padding;
+    // The buffer is designed to be a multiple of 8 bytes on both 32-bit and 64-bit machines.
+    // Add padding if necessary to keep it this way.
 
 #if (__cplusplus >= 201103L || _MSVC_LANG >= 201103L)
     /** Convenience methods for accessing the flags */

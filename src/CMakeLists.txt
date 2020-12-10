@@ -57,6 +57,7 @@ set(HEADER_FILES
     DeviceArgument.h
     DeviceInterface.h
     Dimension.h
+    DistributeLoops.h
     EarlyFree.h
     Elf.h
     EliminateBoolVectors.h
@@ -221,6 +222,7 @@ set(SOURCE_FILES
     DeviceArgument.cpp
     DeviceInterface.cpp
     Dimension.cpp
+    DistributeLoops.cpp
     EarlyFree.cpp
     Elf.cpp
     EliminateBoolVectors.cpp
@@ -392,6 +394,10 @@ if (TARGET wabt-obj)
     target_compile_definitions(Halide PRIVATE WITH_WABT)
 endif ()
 
+if (TARGET_MPI)
+    target_link_libraries(Halide PRIVATE ${MPI_CXX_LIBRARIES})
+endif()
+
 ##
 # Include paths for libHalide
 ##
@@ -467,6 +473,10 @@ endif ()
 option(TARGET_D3D12COMPUTE "Include Direct3D 12 Compute target" ON)
 if (TARGET_D3D12COMPUTE)
     target_compile_definitions(Halide PRIVATE WITH_D3D12)
+endif ()
+
+if (TARGET_MPI)
+    target_compile_definitions(Halide PRIVATE WITH_MPI)
 endif ()
 
 ##

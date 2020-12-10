@@ -44,6 +44,7 @@ set(RUNTIME_CPP
     mips_cpu_features
     module_aot_ref_count
     module_jit_ref_count
+    mpi
     msan
     msan_stubs
     opencl
@@ -223,8 +224,18 @@ foreach (i IN LISTS RUNTIME_CPP)
                 target_compile_options(${basename} PRIVATE ${RUNTIME_CXX_FLAGS} ${fpic} -m${j} -target ${TARGET})
                 target_compile_definitions(${basename} PRIVATE ${RUNTIME_DEFINES})
             else()
+                set(mpi_compile_flag "")
+                set(mpi_include_flag "")
+                if (i MATCHES "^mpi$")
+                    if (NOT "${MPI_CXX_COMPILE_FLAGS}" STREQUAL "")
+                        set(mpi_compile_flag ${MPI_CXX_COMPILE_FLAGS})
+                    endif ()
+                    if (NOT "${MPI_CXX_INCLUDE_DIRS}" STREQUAL "")
+                        set(mpi_include_flag -I${MPI_CXX_INCLUDE_DIRS})
+                    endif ()
+                endif ()
                 add_custom_command(OUTPUT "${LL}"
-                                   COMMAND clang ${clang_flags} -o "${ll_path}" "$<SHELL_PATH:${SOURCE}>"
+                                   COMMAND clang ${clang_flags} -o "${ll_path}" "$<SHELL_PATH:${SOURCE}>" ${MPI_CXX_COMPILE_FLAGS} ${mpi_include_flag}
                                    DEPENDS "${SOURCE}"
                                    # Note: IMPLICIT_DEPENDS only works for Makefile generators, ${dep_args} handles Ninja.
                                    IMPLICIT_DEPENDS CXX "${SOURCE}"
@@ -301,4 +312,3 @@ add_library(Halide_Runtime INTERFACE)
 add_library(Halide::Runtime ALIAS Halide_Runtime)
 target_include_directories(Halide_Runtime INTERFACE $<BUILD_INTERFACE:${Halide_BINARY_DIR}/include>)
 set_target_properties(Halide_Runtime PROPERTIES EXPORT_NAME Runtime)
-

@@ -43,3 +43,8 @@ option(WITH_TEST_GENERATOR "Build generator tests" ON)
 if (WITH_TEST_GENERATOR)
     add_subdirectory(generator)
 endif ()
+
+option(WITH_TEST_DISTRIBUTED "Build distributed tests" ON)
+if (WITH_TEST_DISTRIBUTED)
+	add_subdirectory(distributed)
+endif ()
