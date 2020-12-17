@@ -98,6 +98,8 @@ std::ostream &operator<<(std::ostream &stream, const Box &b) {
     return stream;
 }
 
+namespace {
+
 class Bounds : public IRVisitor {
 public:
     Interval interval;
@@ -1580,6 +1582,8 @@ private:
     }
 };
 
+}  // namespace
+
 Interval bounds_of_expr_in_scope(const Expr &expr, const Scope<Interval> &scope, const FuncValueBounds &fb, bool const_bound) {
     //debug(3) << "computing bounds_of_expr_in_scope " << expr << "\n";
     Bounds b(&scope, fb, const_bound);
@@ -1784,6 +1788,8 @@ bool box_contains(const Box &outer, const Box &inner) {
     }
     return can_prove(condition);
 }
+
+namespace {
 
 class FindInnermostVar : public IRVisitor {
 public:
@@ -2632,6 +2638,8 @@ private:
         }
     }
 };
+
+}  // namespace
 
 map<string, Box> boxes_touched(const Expr &e, Stmt s, bool consider_calls, bool consider_provides,
                                const string &fn, const Scope<Interval> &scope, const FuncValueBounds &fb) {
