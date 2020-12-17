@@ -2258,6 +2258,7 @@ public:
     HALIDE_FORWARD_METHOD_CONST(Func, value)
     HALIDE_FORWARD_METHOD_CONST(Func, values)
     HALIDE_FORWARD_METHOD(Func, vectorize)
+    HALIDE_FORWARD_METHOD(Func, distribute)
     // }@
 
 #undef HALIDE_OUTPUT_FORWARD
