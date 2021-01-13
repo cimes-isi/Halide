@@ -13,7 +13,7 @@ function(halide_define_aot_test NAME)
     endif ()
 
     add_executable("${NAME}.generator" "${NAME}_generator.cpp")
-    target_link_libraries("${NAME}.generator" PRIVATE Halide::Generator ${args_GEN_DEPS})
+    target_link_libraries("${NAME}.generator" PRIVATE Halide::Generator ${args_GEN_DEPS} ${MPI_CXX_LIBRARIES})
 
     set(TARGET "generator_aot_${NAME}")
     set(DEPS ${args_EXTRA_LIBS})
@@ -40,6 +40,7 @@ function(halide_define_aot_test NAME)
         add_wasm_halide_test("${TARGET}" GROUPS generator)
     else ()
         add_executable("${TARGET}" "${NAME}_aottest.cpp")
+        target_link_libraries("${TARGET}" PRIVATE ${MPI_CXX_LIBRARIES})
         target_include_directories("${TARGET}" PRIVATE
             "${Halide_SOURCE_DIR}/test/common"
             "${Halide_SOURCE_DIR}/tools")
