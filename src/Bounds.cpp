@@ -1428,6 +1428,14 @@ private:
         } else if (op->is_intrinsic(Call::mpi_num_processors) || op->is_intrinsic(Call::mpi_rank)) {
             // We treat MPI function calls as constants: just use the original operations.
             interval = Interval(Expr(op), Expr(op));
+        } else if (op->is_intrinsic(Call::scatter_gather)) {
+            // Take the union of the args
+            Interval result = Interval::nothing();
+            for (const Expr &e : op->args) {
+                e.accept(this);
+                result.include(interval);
+            }
+            interval = result;
         } else if (op->call_type == Call::Halide) {
             bounds_of_func(op->name, op->value_index, op->type);
         } else {

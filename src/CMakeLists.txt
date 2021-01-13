@@ -33,7 +33,6 @@ set(HEADER_FILES
     CodeGen_Metal_Dev.h
     CodeGen_MIPS.h
     CodeGen_OpenCL_Dev.h
-    CodeGen_OpenGL_Dev.h
     CodeGen_OpenGLCompute_Dev.h
     CodeGen_Posix.h
     CodeGen_PowerPC.h
@@ -69,6 +68,7 @@ set(HEADER_FILES
     ExternFuncArgument.h
     FastIntegerDivide.h
     FindCalls.h
+    FindIntrinsics.h
     FlattenNestedRamps.h
     Float16.h
     Func.h
@@ -82,7 +82,6 @@ set(HEADER_FILES
     ImageParam.h
     InferArguments.h
     InjectHostDevBufferCopies.h
-    InjectOpenGLIntrinsics.h
     Inline.h
     InlineReductions.h
     IntegerDivisionTable.h
@@ -164,7 +163,6 @@ set(HEADER_FILES
     UnsafePromises.h
     Util.h
     Var.h
-    VaryingAttributes.h
     VectorizeLoops.h
     WasmExecutor.h
     WrapCalls.h
@@ -200,7 +198,6 @@ set(SOURCE_FILES
     CodeGen_Metal_Dev.cpp
     CodeGen_MIPS.cpp
     CodeGen_OpenCL_Dev.cpp
-    CodeGen_OpenGL_Dev.cpp
     CodeGen_OpenGLCompute_Dev.cpp
     CodeGen_Posix.cpp
     CodeGen_PowerPC.cpp
@@ -231,6 +228,7 @@ set(SOURCE_FILES
     Expr.cpp
     FastIntegerDivide.cpp
     FindCalls.cpp
+    FindIntrinsics.cpp
     FlattenNestedRamps.cpp
     Float16.cpp
     Func.cpp
@@ -243,7 +241,6 @@ set(SOURCE_FILES
     ImageParam.cpp
     InferArguments.cpp
     InjectHostDevBufferCopies.cpp
-    InjectOpenGLIntrinsics.cpp
     Inline.cpp
     InlineReductions.cpp
     IntegerDivisionTable.cpp
@@ -337,7 +334,6 @@ set(SOURCE_FILES
     UnsafePromises.cpp
     Util.cpp
     Var.cpp
-    VaryingAttributes.cpp
     VectorizeLoops.cpp
     WasmExecutor.cpp
     WrapCalls.cpp
@@ -460,11 +456,6 @@ if (TARGET_OPENCL)
     target_compile_definitions(Halide PRIVATE WITH_OPENCL)
 endif ()
 
-option(TARGET_OPENGL "Include OpenGL/GLSL target" ON)
-if (TARGET_OPENGL)
-    target_compile_definitions(Halide PRIVATE WITH_OPENGL)
-endif ()
-
 option(TARGET_METAL "Include Metal target" ON)
 if (TARGET_METAL)
     target_compile_definitions(Halide PRIVATE WITH_METAL)
@@ -477,6 +468,11 @@ endif ()
 
 if (TARGET_MPI)
     target_compile_definitions(Halide PRIVATE WITH_MPI)
+endif ()
+
+option(TARGET_OPENGLCOMPUTE "Include OpenGLCompute target" ON)
+if (TARGET_OPENGLCOMPUTE)
+    target_compile_definitions(Halide PRIVATE WITH_OPENGLCOMPUTE)
 endif ()
 
 ##
