@@ -19,6 +19,7 @@ struct DistributedLoop {
 class MarkDistributedLoops : public IRVisitor {
     Scope<Expr> let_stmts;
 public:
+    using IRVisitor::visit;
     map<string, DistributedLoop> distributed_loops;
     void visit(const For *op) override {
         if (op->distributed) {
