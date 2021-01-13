@@ -2,6 +2,7 @@
 
 #include "DistributeLoops.h"
 #include "Function.h"
+#include "IRVisitor.h"
 #include "IRMutator.h"
 #include "IROperator.h"
 #include "Simplify.h"
