@@ -839,6 +839,17 @@ void CodeGen_LLVM::compile_buffer(const Buffer<> &buf) {
         shape = ConstantPointerNull::get(dimension_t_type->getPointerTo());
     }
 
+    Constant *global_shape = nullptr;
+    if (buf.dimensions() && buf.is_distributed()) {
+        size_t shape_size = buf.dimensions() * sizeof(halide_dimension_t);
+        vector<char> shape_blob((char *)buf.raw_buffer()->distributed_global_dim,
+                                (char *)buf.raw_buffer()->distributed_global_dim + shape_size);
+        global_shape = create_binary_blob(shape_blob, buf.name() + ".global_shape");
+        global_shape = ConstantExpr::getPointerCast(global_shape, dimension_t_type->getPointerTo());
+    } else {
+        global_shape = ConstantPointerNull::get(dimension_t_type->getPointerTo());
+    }
+
     // For now, we assume buffers that aren't scalar are constant,
     // while scalars can be mutated. This accommodates all our existing
     // use cases, which is that all buffers are constant, except those
@@ -855,7 +866,7 @@ void CodeGen_LLVM::compile_buffer(const Buffer<> &buf) {
         ConstantStruct::get(type_t_type, type_fields),                      // type
         ConstantInt::get(i32_t, buf.dimensions()),                          // dimensions
         shape,                                                              // dim
-        ConstantPointerNull::get(i8_t->getPointerTo()),                     // padding
+        global_shape                                                        // distributed_dim
     };
     Constant *buffer_struct = ConstantStruct::get(halide_buffer_t_type, fields);
 
