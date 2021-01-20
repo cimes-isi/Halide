@@ -7,6 +7,9 @@ HALIDE_DISTRIB_PATH ?= $(HALIDE_SRC_ROOT)/distrib
 
 $(info Looking for Halide distro at $(HALIDE_DISTRIB_PATH). If this is incorrect, set the make variable HALIDE_DISTRIB_PATH)
 
+WITH_MPI ?= not-empty
+CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
+
 # Don't include an autoscheduler in the generator deps
 AUTOSCHEDULER=
 include $(HALIDE_SRC_ROOT)/apps/support/Makefile.inc
