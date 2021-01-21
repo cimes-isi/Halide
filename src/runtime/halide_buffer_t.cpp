@@ -152,7 +152,6 @@ halide_buffer_t *_halide_buffer_init(halide_buffer_t *dst,
             dst->dim[i] = shape[i];
         }
     }
-    dst->distributed_global_dim = nullptr;
     dst->flags = flags;
     return dst;
 }
@@ -167,10 +166,16 @@ halide_buffer_t *_halide_buffer_init_from_buffer(halide_buffer_t *dst,
     dst->type = src->type;
     dst->dimensions = src->dimensions;
     dst->dim = dst_shape;
-    dst->distributed_global_dim = nullptr;
     dst->flags = src->flags;
     for (int i = 0; i < dst->dimensions; i++) {
         dst->dim[i] = src->dim[i];
+    }
+    if (src->distributed_global_dim != nullptr) {
+        for (int i = 0; i < dst->dimensions; i++) {
+            dst->distributed_global_dim[i] = src->distributed_global_dim[i];
+        }
+    } else {
+        dst->distributed_global_dim = nullptr;
     }
     return dst;
 }
