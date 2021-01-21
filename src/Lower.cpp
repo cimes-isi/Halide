@@ -141,9 +141,10 @@ Module lower(const vector<Function> &output_funcs,
     // checks so that the checks are in terms of local image
     // bounds. It should also take place before bounds inference so
     // that inferred bounds are in terms of processor rank.
+    bool has_distributed_loops = false;
     if (t.has_feature(Target::MPI)) {
         debug(1) << "Splitting distributed loops...\n";
-        s = distribute_loops(s);
+        std::tie(s, has_distributed_loops) = distribute_loops(s);
         debug(2) << "Lowering after converting distributed for loops:\n" << s << "\n\n";
     }
 
@@ -175,7 +176,7 @@ Module lower(const vector<Function> &output_funcs,
     // can't simplify statements from here until we fix them up. (We
     // can still simplify Exprs).
     debug(1) << "Performing computation bounds inference...\n";
-    s = bounds_inference(s, outputs, order, fused_groups, env, func_bounds, t);
+    s = bounds_inference(s, outputs, order, fused_groups, env, func_bounds, t, has_distributed_loops);
     debug(2) << "Lowering after computation bounds inference:\n"
              << s << "\n";
 

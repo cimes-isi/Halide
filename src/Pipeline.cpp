@@ -721,8 +721,9 @@ Realization Pipeline::realize(vector<int32_t> sizes, const Target &target,
         vector<int> mins(sizes.size(), 0);
         vector<int> out_sizes = sizes;
         bool is_distributed = false;
-        for (int i = 0; i < (int)sizes.size(); i++) {
-            if (out.definition().schedule().dims()[i].distributed) {
+        const std::vector<Dim> &dims = out.definition().schedule().dims();
+        for (int i = 0; i < (int)dims.size(); i++) {
+            if (dims[i].distributed) {
                 is_distributed = true;
                 int rank = 0, numprocs = 0;
                 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -739,6 +740,8 @@ Realization Pipeline::realize(vector<int32_t> sizes, const Target &target,
         for (Type t : out.output_types()) {
             bufs.emplace_back(t, nullptr, out_sizes);
             bufs.back().set_min(mins);
+            buf_mins.push_back(mins);
+            sliced_sizes.push_back(out_sizes);
         }
 
         if (is_distributed) {
@@ -746,9 +749,6 @@ Realization Pipeline::realize(vector<int32_t> sizes, const Target &target,
                 b.set_distributed(sizes);
             }
         }
-
-        buf_mins.push_back(mins);
-        sliced_sizes.push_back(out_sizes);
     }
     Realization r(bufs);
     // Do an output bounds query if we can. Otherwise just assume the
@@ -1249,7 +1249,7 @@ void Pipeline::infer_input_bounds(RealizationArg outputs, const Target &target, 
             // Make some empty Buffers of the right dimensionality
             vector<int> initial_shape(ia.param.dimensions(), 0);
             tracked_buffers[i].orig = Runtime::Buffer<>(ia.param.type(), nullptr, initial_shape);
-            if (buf_out_param == nullptr) {
+            if (buf_out_param == nullptr || !buf_out_param->defined()) {
                 tracked_buffers[i].query = Runtime::Buffer<>(ia.param.type(), nullptr, initial_shape);
             } else {
                 // Use the associated buffer in the param_map to do the boundary query.

@@ -211,6 +211,7 @@ public:
     const FuncValueBounds &func_bounds;
     set<string> in_pipeline, inner_productions, has_extern_consumer;
     const Target target;
+    bool use_distributed_bounds;
 
     struct CondValue {
         Expr cond;  // Condition on params only (can't depend on loop variable)
@@ -808,8 +809,10 @@ public:
                     const vector<set<FusedPair>> &fp,
                     const vector<Function> &outputs,
                     const FuncValueBounds &fb,
-                    const Target &target)
-        : funcs(f), fused_groups(fg), fused_pairs_in_groups(fp), func_bounds(fb), target(target) {
+                    const Target &target,
+                    bool use_distributed_bounds)
+        : funcs(f), fused_groups(fg), fused_pairs_in_groups(fp), func_bounds(fb), target(target),
+          use_distributed_bounds(use_distributed_bounds) {
         internal_assert(!f.empty());
 
         // Compute the intrinsic relationships between the stages of
@@ -990,7 +993,7 @@ public:
             for (int d = 0; d < output.dimensions(); d++) {
                 Parameter buf = output.output_buffers()[0];
                 Expr min, extent;
-                if (output.definition().schedule().dims()[d].distributed) {
+                if (use_distributed_bounds) {
                     min = Variable::make(Int(32), buffer_name + ".global_min." + std::to_string(d), buf);
                     extent = Variable::make(Int(32), buffer_name + ".global_extent." + std::to_string(d), buf);
                 } else {
@@ -1268,7 +1271,8 @@ Stmt bounds_inference(Stmt s,
                       const vector<vector<string>> &fused_groups,
                       const map<string, Function> &env,
                       const FuncValueBounds &func_bounds,
-                      const Target &target) {
+                      const Target &target,
+                      bool use_distributed_bounds) {
 
     vector<Function> funcs(order.size());
     for (size_t i = 0; i < order.size(); i++) {
@@ -1316,7 +1320,7 @@ Stmt bounds_inference(Stmt s,
     s = For::make("<outermost>", 0, 1, ForType::Serial, false /* distributed */, DeviceAPI::None, s);
 
     s = BoundsInference(funcs, fused_func_groups, fused_pairs_in_groups,
-                        outputs, func_bounds, target)
+                        outputs, func_bounds, target, use_distributed_bounds)
             .mutate(s);
     return s.as<For>()->body;
 }

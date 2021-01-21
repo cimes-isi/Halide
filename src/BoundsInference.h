@@ -30,7 +30,8 @@ Stmt bounds_inference(Stmt,
                       const std::vector<std::vector<std::string>> &fused_groups,
                       const std::map<std::string, Function> &environment,
                       const std::map<std::pair<std::string, int>, Interval> &func_bounds,
-                      const Target &target);
+                      const Target &target,
+                      bool use_distributed_bounds);
 
 }  // namespace Internal
 }  // namespace Halide

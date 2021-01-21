@@ -3109,8 +3109,9 @@ void Func::infer_input_bounds(const std::vector<int32_t> &sizes,
     vector<int> mins(dimensions(), 0);
     vector<int> out_sizes = sizes;
     bool is_distributed = false;
-    for (int i = 0; i < dimensions(); i++) {
-        if (function().definition().schedule().dims()[i].distributed) {
+    const std::vector<Dim> &dims = function().definition().schedule().dims();
+    for (int i = 0; i < (int)dims.size(); i++) {
+        if (dims[i].distributed) {
             is_distributed = true;
             int rank = 0, numprocs = 0;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);

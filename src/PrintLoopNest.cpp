@@ -2,6 +2,7 @@
 #include "AllocationBoundsInference.h"
 #include "Bounds.h"
 #include "BoundsInference.h"
+#include "DistributeLoops.h"
 #include "FindCalls.h"
 #include "Func.h"
 #include "Function.h"
@@ -220,7 +221,9 @@ string print_loop_nest(const vector<Function> &output_funcs) {
     // This pass injects nested definitions of variable names, so we
     // can't simplify statements from here until we fix them up. (We
     // can still simplify Exprs).
-    s = bounds_inference(s, outputs, order, fused_groups, env, func_bounds, target);
+    bool has_distributed_loops = false;
+    std::tie(s, has_distributed_loops) = distribute_loops(s);
+    s = bounds_inference(s, outputs, order, fused_groups, env, func_bounds, target, has_distributed_loops);
     s = remove_extern_loops(s);
     s = sliding_window(s, env);
     s = simplify_correlated_differences(s);

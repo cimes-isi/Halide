@@ -22,6 +22,8 @@ class MarkDistributedLoops : public IRVisitor {
 public:
     using IRVisitor::visit;
     map<string, DistributedLoop> distributed_loops;
+    bool found_distributed_loop = false;
+    
     void visit(const For *op) override {
         if (op->distributed) {
             std::string loop_min = op->name + ".loop_min";
@@ -29,6 +31,7 @@ public:
             internal_assert(let_stmts.contains(loop_min));
             internal_assert(let_stmts.contains(loop_extent));
             distributed_loops[op->name] = DistributedLoop{let_stmts.get(loop_min), let_stmts.get(loop_extent)};
+            found_distributed_loop = true;
         } else {
             IRVisitor::visit(op);
         }
@@ -96,11 +99,11 @@ public:
     }
 };
 
-Stmt distribute_loops(Stmt s) {
+std::pair<Stmt, bool> distribute_loops(Stmt s) {
     MarkDistributedLoops mark_distributed_loops;
     s.accept(&mark_distributed_loops);
     s = DistributeLoops(mark_distributed_loops.distributed_loops).mutate(s);
-    return s;
+    return {s, mark_distributed_loops.found_distributed_loop};
 }
 
 } // Internal

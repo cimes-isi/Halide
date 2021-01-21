@@ -15,9 +15,9 @@ namespace Internal {
 
 /** Take a statement with for loops marked for distribution, and turn
  * them into loops that operate on a subset of their input data
- * according to their MPI rank.
+ * according to their MPI rank. Return true if it finds a distributed loop.
  */
-Stmt distribute_loops(Stmt s);
+std::pair<Stmt, bool> distribute_loops(Stmt s);
 
 } // namespace Internal
 } // namespace Halide
