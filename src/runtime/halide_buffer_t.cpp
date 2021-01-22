@@ -5,8 +5,6 @@
 #define HALIDE_BUFFER_HELPER_ATTRS inline
 #endif
 
-#include "printer.h"
-
 // Structs are annoying to deal with from within Halide Stmts. These
 // utility functions are for dealing with halide_buffer_t in that
 // context. They are not intended for use outside of Halide code, and
