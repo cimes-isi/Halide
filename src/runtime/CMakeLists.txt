@@ -261,7 +261,7 @@ foreach (i IN LISTS RUNTIME_CPP)
                     endif ()
                 endif ()
                 add_custom_command(OUTPUT "${LL}"
-                                   COMMAND clang ${clang_flags} -o "${ll_path}" "$<SHELL_PATH:${SOURCE}>" ${MPI_CXX_COMPILE_FLAGS} ${mpi_include_flag}
+                                   COMMAND clang ${clang_flags} -o "${ll_path}" "$<SHELL_PATH:${SOURCE}>" ${mpi_compile_flag} ${mpi_include_flag}
                                    DEPENDS "${SOURCE}"
                                    # Note: IMPLICIT_DEPENDS only works for Makefile generators, ${dep_args} handles Ninja.
                                    IMPLICIT_DEPENDS CXX "${SOURCE}"
