@@ -47,9 +47,6 @@ option(TARGET_MPI "Build Halide with MPI?" ON)
 if (TARGET_MPI)
     message(STATUS "Build with MPI support")
     find_package(MPI REQUIRED)
-    add_definitions(${MPI_CXX_COMPILE_FLAGS})
-    include_directories(${MPI_CXX_INCLUDE_DIRS})
-    link_directories(${MPI_CXX_LIBRARY_DIRS})
 endif()
 
 ##

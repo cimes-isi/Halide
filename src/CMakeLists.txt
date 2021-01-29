@@ -399,7 +399,7 @@ if (TARGET wabt-obj)
 endif ()
 
 if (TARGET_MPI)
-    target_link_libraries(Halide PRIVATE ${MPI_CXX_LIBRARIES})
+    target_link_libraries(Halide PRIVATE MPI::MPI_CXX)
 endif()
 
 ##

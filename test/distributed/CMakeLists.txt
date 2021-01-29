@@ -3,7 +3,7 @@ tests(GROUPS correctness_distributed
       distributed.cpp
       )
 
-target_link_libraries(correctness_distributed_distributed PRIVATE ${MPI_CXX_LIBRARIES})
+target_link_libraries(correctness_distributed_distributed PRIVATE MPI::MPI_CXX)
 
 function(halide_define_aot_test NAME)
     set(options OMIT_DEFAULT_GENERATOR)
@@ -17,7 +17,7 @@ function(halide_define_aot_test NAME)
 
     add_executable("${NAME}.generator" "${NAME}_generator.cpp")
 
-    target_link_libraries("${NAME}.generator" PRIVATE Halide::Generator ${args_GEN_DEPS} ${MPI_CXX_LIBRARIES})
+    target_link_libraries("${NAME}.generator" PRIVATE Halide::Generator ${args_GEN_DEPS})
 
     set(TARGET "generator_aot_${NAME}")
     set(DEPS ${args_EXTRA_LIBS})
@@ -50,7 +50,7 @@ function(halide_define_aot_test NAME)
         target_compile_definitions("${TARGET}" PRIVATE TEST_CUDA)
     endif ()
 
-    target_link_libraries("${TARGET}" PRIVATE ${MPI_CXX_LIBRARIES})
+    target_link_libraries("${TARGET}" PRIVATE MPI::MPI_CXX)
 
     add_halide_test("${TARGET}" GROUPS distributed_generator)
 endfunction()
