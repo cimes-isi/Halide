@@ -19,6 +19,7 @@ struct DistributedLoop {
 };
 class MarkDistributedLoops : public IRVisitor {
     Scope<Expr> let_stmts;
+    bool inside_distributed_loop = false;
 public:
     using IRVisitor::visit;
     map<string, DistributedLoop> distributed_loops;
@@ -26,12 +27,17 @@ public:
     
     void visit(const For *op) override {
         if (op->distributed) {
+            user_assert(!inside_distributed_loop) << "Nested distributed loops is currently not allowed.";
             std::string loop_min = op->name + ".loop_min";
             std::string loop_extent = op->name + ".loop_extent";
             internal_assert(let_stmts.contains(loop_min));
             internal_assert(let_stmts.contains(loop_extent));
             distributed_loops[op->name] = DistributedLoop{let_stmts.get(loop_min), let_stmts.get(loop_extent)};
-            found_distributed_loop = true;
+            
+            {
+                ScopedValue<bool> old_inside_distributed_loop(inside_distributed_loop, true);
+                IRVisitor::visit(op);
+            }
         } else {
             IRVisitor::visit(op);
         }
