@@ -33,6 +33,7 @@ public:
             internal_assert(let_stmts.contains(loop_min));
             internal_assert(let_stmts.contains(loop_extent));
             distributed_loops[op->name] = DistributedLoop{let_stmts.get(loop_min), let_stmts.get(loop_extent)};
+            found_distributed_loop = true;
             
             {
                 ScopedValue<bool> old_inside_distributed_loop(inside_distributed_loop, true);
