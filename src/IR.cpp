@@ -618,6 +618,7 @@ const char *const intrinsic_op_names[] = {
     "mpi_num_processors",
     "mpi_rank",
     "mulhi_shr",
+    "mux",
     "popcount",
     "prefetch",
     "promise_clamped",
